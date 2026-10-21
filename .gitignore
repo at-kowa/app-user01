@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# 値の入っていない雛形だけはリポジトリに置く
+!.env.example
 
 # vercel
 .vercel

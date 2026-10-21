@@ -91,16 +91,20 @@ export type NewDefectInput = {
 };
 
 // 画面の部品は、この形の操作だけを呼ぶ。
-// 第1段階はブラウザの中に保存する実装、第2段階でデータベースの実装に差し替える。
+// 第1段階はブラウザの中に保存する実装、第2段階でデータベース（Supabase）の実装に差し替えた。
 export type BoardApi = {
   ready: boolean;
   storageOK: boolean;
+  storageNote: string; // 画面の足元に出す保存先の説明
+  error: string | null; // 保存できなかったときの理由（画面に出す）
+  clearError: () => void;
+  resetKey: number; // 保存できなかったとき、入力欄を保存前の値に戻すために増やす
   props: Prop[];
   history: HistoryEntry[];
   role: Role;
   warnDays: number;
   setRole: ((role: Role) => void) | null; // ログイン導入後は null
-  setWarnDays: (n: number) => void;
+  setWarnDays: ((n: number) => void) | null; // 7日で固定のときは null
   updateProp: (id: string, key: PropField, value: string | number) => Promise<void>;
   addMaterial: (id: string) => Promise<void>;
   updateMaterial: (id: string, matId: string, key: MaterialField, value: string | boolean) => Promise<void>;

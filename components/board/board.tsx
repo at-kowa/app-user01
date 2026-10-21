@@ -9,6 +9,7 @@ import { can, defectCount, isWarn, shipped, status } from "@/lib/board/logic";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "./confirm";
 import { DetailDialog } from "./detail-dialog";
+import { ErrorBar } from "./error-bar";
 import { Select } from "./fields";
 import { NewPropDialog } from "./new-prop-dialog";
 import { PropCard } from "./prop-card";
@@ -85,6 +86,7 @@ export function Board({ api, headerExtra }: { api: BoardApi; headerExtra?: React
       {!api.storageOK && (
         <div className="bg-st-yellow-bg px-5 py-2.5 text-[13px] text-[#5E4700]">この画面では入力内容を保存できません。Edgeの通常のウィンドウで開いてください。</div>
       )}
+      {api.error && !openId && <ErrorBar message={api.error} onClose={api.clearError} />}
 
       <div className="flex flex-wrap items-stretch gap-2 px-5 pt-3.5 pb-1" data-testid="summary">
         <button type="button" className={chip} aria-pressed={fState === "すべて"} onClick={() => setFState("すべて")}>
@@ -141,29 +143,33 @@ export function Board({ api, headerExtra }: { api: BoardApi; headerExtra?: React
       </main>
 
       <footer className="flex flex-wrap items-center gap-3 border-t border-line px-5 pt-4 pb-8 text-[13px] text-muted-foreground">
-        <span>架空のデータだけを入れてください。データはこのPCのEdgeの中だけに保存され、閲覧データを削除すると消えます。</span>
+        <span>{api.storageNote}</span>
         <span className="flex-1" />
-        <label className="flex items-center gap-1.5">
-          納期注意の日数
-          <Input
-            key={api.warnDays}
-            type="number"
-            min={1}
-            max={60}
-            defaultValue={api.warnDays}
-            className="h-10 w-[70px] bg-white"
-            aria-label="納期注意の日数"
-            onBlur={(e) => {
-              const v = Number(e.currentTarget.value);
-              if (!v || v < 1 || v > 60) e.currentTarget.value = String(api.warnDays);
-              else if (v !== api.warnDays) api.setWarnDays(v);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") e.currentTarget.blur();
-            }}
-          />
-          日以内
-        </label>
+        {api.setWarnDays ? (
+          <label className="flex items-center gap-1.5">
+            納期注意の日数
+            <Input
+              key={api.warnDays}
+              type="number"
+              min={1}
+              max={60}
+              defaultValue={api.warnDays}
+              className="h-10 w-[70px] bg-white"
+              aria-label="納期注意の日数"
+              onBlur={(e) => {
+                const v = Number(e.currentTarget.value);
+                if (!v || v < 1 || v > 60) e.currentTarget.value = String(api.warnDays);
+                else if (v !== api.warnDays) api.setWarnDays?.(v);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
+            />
+            日以内
+          </label>
+        ) : (
+          <span>納期注意は残り{api.warnDays}日以内</span>
+        )}
         {api.reset && (
           <Button
             variant="outline"

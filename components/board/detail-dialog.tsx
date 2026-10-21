@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { BoardApi, Prop, ProcStatus } from "@/lib/board/types";
 import { KUBUNS, PROC_STATUSES, PROCS, TEAMS } from "@/lib/board/types";
 import { can, md } from "@/lib/board/logic";
+import { ErrorBar } from "./error-bar";
 import { CommitDate, CommitNumber, CommitText, Field, ReadValue, Select } from "./fields";
 import { StatusTags } from "./tags";
 
@@ -23,7 +24,9 @@ export function DetailDialog({ api, id, onClose, ask }: { api: BoardApi; id: str
         className="max-h-[calc(100dvh-2rem)] gap-0 overflow-y-auto p-5 sm:max-w-[860px]"
         data-testid="detail"
       >
-        {p && <DetailBody key={p.id} api={api} p={p} onClose={onClose} ask={ask} />}
+        {p && api.error && <ErrorBar message={api.error} onClose={api.clearError} />}
+        {/* 保存できなかったときは resetKey が増え、入力欄を保存前の値に戻す */}
+        {p && <DetailBody key={`${p.id}-${api.resetKey}`} api={api} p={p} onClose={onClose} ask={ask} />}
       </DialogContent>
     </Dialog>
   );
@@ -84,13 +87,14 @@ function DetailBody({ api, p, onClose, ask }: { api: BoardApi; p: Prop; onClose:
       </div>
 
       <Section title="受注" lock={<Lock ok={o} who="営業・業務" />}>
+        {o && !can.ship(r) && <p className="mb-2 text-xs text-muted-foreground">受注区分と出荷予定日は業務だけが書けます</p>}
         <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-x-4 gap-y-2.5">
           <Field label="品名">{o ? <CommitText value={p.name} required onCommit={(v) => api.updateProp(p.id, "name", v)} /> : <ReadValue value={p.name} />}</Field>
           <Field label="客先">{o ? <CommitText value={p.cust} onCommit={(v) => api.updateProp(p.id, "cust", v)} /> : <ReadValue value={p.cust} />}</Field>
           <Field label="数量">{o ? <CommitNumber value={p.qty} onCommit={(v) => api.updateProp(p.id, "qty", v)} /> : <ReadValue value={p.qty} />}</Field>
           <Field label="重量(kg)">{o ? <CommitNumber value={p.weight} onCommit={(v) => api.updateProp(p.id, "weight", v)} /> : <ReadValue value={p.weight} />}</Field>
           <Field label="希望納期">{o ? <CommitDate value={p.due} onCommit={(v) => api.updateProp(p.id, "due", v)} /> : <ReadValue value={p.due || "—"} />}</Field>
-          <Field label="出荷予定日">{o ? <CommitDate value={p.ship} onCommit={(v) => api.updateProp(p.id, "ship", v)} /> : <ReadValue value={p.ship || "—"} />}</Field>
+          <Field label="出荷予定日">{can.ship(r) ? <CommitDate value={p.ship} onCommit={(v) => api.updateProp(p.id, "ship", v)} /> : <ReadValue value={p.ship || "—"} />}</Field>
           <Field label="担当班">{o ? <Select value={p.team} options={TEAMS} onChange={(v) => api.updateProp(p.id, "team", v)} /> : <ReadValue value={p.team} />}</Field>
           <Field label="受注区分">{can.kubun(r) ? <Select value={p.kubun} options={KUBUNS} onChange={(v) => api.updateProp(p.id, "kubun", v)} /> : <ReadValue value={p.kubun} />}</Field>
         </div>

@@ -6,10 +6,13 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
 export const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
+// 「今日」は日本時間で数える（端末やサーバーの時計の時差に左右されないように）
+const jstYmd = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+
 export const today = () => {
-  const t = new Date();
-  t.setHours(0, 0, 0, 0);
-  return t;
+  const [y, m, d] = jstYmd().split("-").map(Number);
+  return new Date(y, m - 1, d);
 };
 
 // 今日から n 日後（マイナスなら前）の日付
@@ -28,10 +31,9 @@ export const daysTo = (s: string): number | null => {
 // 2026-10-05 → 10/5
 export const md = (s: string) => (s ? `${Number(s.slice(5, 7))}/${Number(s.slice(8, 10))}` : "—");
 
-export const nowStr = () => {
-  const n = new Date();
-  return `${fmt(n)} ${pad(n.getHours())}:${pad(n.getMinutes())}`;
-};
+// 変更履歴の日時（データベースの時刻）を日本時間の「YYYY-MM-DD HH:MM」にする
+export const jstDateTime = (iso: string) =>
+  new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 
 export const shipped = (p: Prop) => p.procs[PROCS.length - 1]?.status === "完了";
 
@@ -61,6 +63,7 @@ export const curProc = (p: Prop) => p.procs.find((x) => x.status !== "完了")?.
 export const can = {
   order: (r: Role) => r === "営業" || r === "業務",
   kubun: (r: Role) => r === "業務",
+  ship: (r: Role) => r === "業務", // 出荷予定日は業務だけ（2026-10-21 決定）
   mats: (r: Role) => r === "業務",
   procs: (r: Role) => r === "現場",
   addDel: (r: Role) => r === "営業" || r === "業務",
@@ -82,16 +85,4 @@ export function applyProcStatus(x: Proc, val: ProcStatus): Proc {
     next.end = "";
   }
   return next;
-}
-
-// done 個の工程が完了、doing なら次の工程が作業中、の状態を作る（初期データ用）
-export function makeProcs(done: number, doing: boolean): Proc[] {
-  return PROCS.map((name, i) => {
-    if (i < done) {
-      const e = -(done - i) * 2;
-      return { name, status: "完了", start: off(e - 2), end: off(e) };
-    }
-    if (i === done && doing) return { name, status: "作業中", start: off(-1), end: "" };
-    return { name, status: "未着手", start: "", end: "" };
-  });
 }
